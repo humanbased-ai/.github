@@ -2,13 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir uv
+RUN pip install --no-cache-dir uv==0.9.28
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 
-RUN uv pip install --system -e ".[dev]"
+RUN uv sync --frozen --no-dev --no-editable
 
-ENV DATABASE_URL=postgresql://postgres:postgres@db:5432/orderbook
-
-CMD ["orderbook-app"]
+CMD ["/app/.venv/bin/orderbook-app"]

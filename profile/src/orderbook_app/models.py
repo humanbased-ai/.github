@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Iterable
 
 from pydantic import BaseModel, Field
 
 
 class OrderBookLevel(BaseModel):
-    price: float
-    size: float
+    price: Decimal = Field(gt=0, allow_inf_nan=False)
+    size: Decimal = Field(ge=0, allow_inf_nan=False)
 
 
 class OrderBookSnapshot(BaseModel):
@@ -28,4 +29,10 @@ class OrderBookUpdate(BaseModel):
 
 
 def parse_levels(levels: Iterable[Iterable[str | float]]) -> list[OrderBookLevel]:
-    return [OrderBookLevel(price=float(row[0]), size=float(row[1])) for row in levels]
+    parsed = []
+    for row in levels:
+        values = list(row)
+        if len(values) < 2:
+            raise ValueError("orderbook levels require price and size")
+        parsed.append(OrderBookLevel(price=Decimal(str(values[0])), size=Decimal(str(values[1]))))
+    return parsed

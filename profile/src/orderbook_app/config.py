@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
+from urllib.parse import quote
 
 
 @dataclass(frozen=True)
@@ -10,6 +11,13 @@ class AppConfig:
 
     @staticmethod
     def from_env() -> "AppConfig":
-        return AppConfig(
-            db_dsn=os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/orderbook"),
-        )
+        dsn = os.getenv("DATABASE_URL")
+        if not dsn:
+            password = os.getenv("PGPASSWORD")
+            if not password:
+                raise ValueError("Set DATABASE_URL or PGPASSWORD; no default database password is supplied")
+            host = os.getenv("PGHOST", "db")
+            user = quote(os.getenv("PGUSER", "orderbook"), safe="")
+            database = quote(os.getenv("PGDATABASE", "orderbook"), safe="")
+            dsn = f"postgresql://{user}:{quote(password, safe='')}@{host}:5432/{database}"
+        return AppConfig(db_dsn=dsn)

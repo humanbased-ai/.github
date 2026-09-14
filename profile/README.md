@@ -1,6 +1,6 @@
 # Orderbook Ingestion (Binance + OKX)
 
-This repository provides a Python (uv-managed) foundation to ingest **real-time** and **historical** orderbook data for **ETH/USDT** from **Binance** and **OKX**, store snapshots/updates in **PostgreSQL**, and prepare for future order placement.
+This package provides parsers, simulated ingest and PostgreSQL storage as a foundation for future **real-time** and **historical** orderbook data ingestion for **ETH/USDT** from **Binance** and **OKX**, store snapshots/updates in **PostgreSQL**, and prepare for future order placement.
 
 ## Goals
 
@@ -54,8 +54,21 @@ uv pip install -e .[dev]
 ## Docker
 
 ```bash
+export ORDERBOOK_DB_PASSWORD="$(openssl rand -hex 32)"
 docker compose up --build
 ```
+
+Preserve the password securely for the database volume's lifetime. PostgreSQL
+has no published host port; the app uses the private Compose network and waits
+for its healthcheck. The app also retries transient startup connection failures
+with a bounded delay. A shared connection pool and batch writes avoid opening a
+new connection per update. Prices and sizes retain exact decimal strings in
+stored JSON. This entrypoint writes one simulated update; live exchange feeds
+and order placement remain unimplemented.
+
+For a local database, set `DATABASE_URL` explicitly. There is no built-in
+password. Run `uv run --extra dev pytest`; the optional isolated database test
+requires `ORDERBOOK_TEST_DSN` pointing at a disposable administrator database.
 
 ## Project Layout
 
@@ -72,3 +85,5 @@ src/orderbook_app/
 - Use the simulated data generator to validate ingestion logic without API calls.
 - Extend `storage/db.py` for historical storage policies (rollups, TTL, etc.).
 
+
+Compose uses [required variable interpolation](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/) and [health-based startup ordering](https://docs.docker.com/compose/how-tos/startup-order/). The image installs the committed lock with the tested uv 0.9.28 CLI.
